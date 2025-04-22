@@ -275,8 +275,7 @@
             // Start game loop
             animate(0);
         }
-
-        function createBoundaries() {
+                function createBoundaries() {
             // Visual floor (just a line)
             const floorGeometry = new THREE.BoxGeometry(GAME_WIDTH, 0.1, 0.1);
             const floorMaterial = new THREE.MeshBasicMaterial({ color: 0x666666 });
@@ -538,4 +537,161 @@
             for (let i = 0; i < bubbles.length; i++) {
                 const bubble = bubbles[i];
                 const bubbleX = bubble.mesh.position.x;
-                const bubb
+                const bubbleY = bubble.mesh.position.y;
+                const radius = bubble.size;
+                
+                // Check if bubble intersects with projectile line
+                if (Math.abs(bubbleX - projectileX) < radius) {
+                    // Check if bubble overlaps with the vertical line (line segment collision)
+                    if (bubbleY + radius > projectileBottom && bubbleY - radius < projectileTop) {
+                        // Bubble hit by projectile
+                        scene.remove(projectile);
+                        projectile = null;
+                        projectileActive = false;
+                        
+                        // Handle bubble split
+                        splitBubble(bubble, i);
+                        
+                        // Update score
+                        updateScore(bubble.size);
+                        
+                        // Check if level completed
+                        if (bubbles.length === 0) {
+                            levelComplete = true;
+                            document.querySelector('.level-complete').style.display = 'block';
+                        }
+                        
+                        break; // Exit loop as we've handled the collision
+                    }
+                }
+            }
+        }
+
+        function splitBubble(bubble, index) {
+            // Remove hit bubble
+            scene.remove(bubble.mesh);
+            bubbles.splice(index, 1);
+            
+            // Determine next size
+            let nextSize = null;
+            if (bubble.size === BUBBLE_SIZES.LARGE) {
+                nextSize = BUBBLE_SIZES.MEDIUM;
+            } else if (bubble.size === BUBBLE_SIZES.MEDIUM) {
+                nextSize = BUBBLE_SIZES.SMALL;
+            } else if (bubble.size === BUBBLE_SIZES.SMALL) {
+                nextSize = BUBBLE_SIZES.TINY;
+            }
+            
+            // If not the smallest size, create two new bubbles
+            if (nextSize) {
+                // Create bubble going left
+                createBubble(
+                    nextSize,
+                    { x: bubble.mesh.position.x, y: bubble.mesh.position.y },
+                    { 
+                        x: -BUBBLE_SPLIT_VELOCITIES.HORIZONTAL, 
+                        y: BUBBLE_SPLIT_VELOCITIES.VERTICAL 
+                    }
+                );
+                
+                // Create bubble going right
+                createBubble(
+                    nextSize,
+                    { x: bubble.mesh.position.x, y: bubble.mesh.position.y },
+                    { 
+                        x: BUBBLE_SPLIT_VELOCITIES.HORIZONTAL, 
+                        y: BUBBLE_SPLIT_VELOCITIES.VERTICAL 
+                    }
+                );
+            }
+        }
+
+        function checkPlayerBubbleCollision(bubble) {
+            const playerBounds = {
+                minX: player.position.x - 0.5,
+                maxX: player.position.x + 0.5,
+                minY: player.position.y - 0.5,
+                maxY: player.position.y + 0.5
+            };
+            
+            const bubblePos = bubble.mesh.position;
+            const radius = bubble.size;
+            
+            // Check collision with sphere using closest point on box
+            const closestX = Math.max(playerBounds.minX, Math.min(bubblePos.x, playerBounds.maxX));
+            const closestY = Math.max(playerBounds.minY, Math.min(bubblePos.y, playerBounds.maxY));
+            
+            const distanceSquared = (closestX - bubblePos.x) ** 2 + (closestY - bubblePos.y) ** 2;
+            
+            return distanceSquared < radius * radius;
+        }
+
+        function handlePlayerHit() {
+            lives--;
+            document.querySelector('.lives').textContent = `Lives: ${lives}`;
+            
+            if (lives <= 0) {
+                gameOver = true;
+                document.querySelector('.game-over').style.display = 'block';
+            } else {
+                // Reset player position
+                player.position.x = 0;
+                
+                // Clear projectile if exists
+                if (projectileActive && projectile) {
+                    scene.remove(projectile);
+                    projectile = null;
+                    projectileActive = false;
+                }
+            }
+        }
+
+        function updateScore(bubbleSize) {
+            let points = 0;
+            if (bubbleSize === BUBBLE_SIZES.LARGE) points = 100;
+            else if (bubbleSize === BUBBLE_SIZES.MEDIUM) points = 200;
+            else if (bubbleSize === BUBBLE_SIZES.SMALL) points = 400;
+            else points = 800;
+            
+            score += points;
+            document.querySelector('.score').textContent = `Score: ${score}`;
+        }
+
+        function restartGame() {
+            if (levelComplete) {
+                // Go to next level
+                currentLevel = (currentLevel % levels.length) + 1;
+            } else {
+                // Reset score and lives
+                score = 0;
+                lives = 3;
+                currentLevel = 1;
+            }
+            
+            loadLevel(currentLevel);
+        }
+
+        function animate(time) {
+            requestAnimationFrame(animate);
+            
+            // Calculate delta time in seconds
+            const deltaTime = (time - lastTime) / 1000;
+            lastTime = time;
+            
+            // Limit delta time to prevent large jumps
+            const cappedDeltaTime = Math.min(deltaTime, 0.1);
+            
+            if (!gameOver && !levelComplete) {
+                updatePlayer(cappedDeltaTime);
+                updateProjectile(cappedDeltaTime);
+                updateBubbles(cappedDeltaTime);
+            }
+            
+            renderer.render(scene, camera);
+        }
+
+        // Start the game
+        init();
+    </script>
+</body>
+</html>
