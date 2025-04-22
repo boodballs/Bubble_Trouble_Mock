@@ -1,0 +1,77 @@
+**Objective:** Generate a **single HTML file** containing all the necessary HTML structure, CSS styles, and JavaScript code for a web-based game inspired by the classic arcade game "Bubble Trouble" (also known as "Pang"). The game must utilize the Three.js library for rendering and be fully playable on both desktop (keyboard controls) and mobile/touch devices (touch controls).
+
+**Core Gameplay Mechanics:**
+
+1.  **Player Character:**
+    * Controlled by the player, restricted to moving horizontally (left/right) along the bottom of the game screen.
+    * Cannot jump.
+    * Represented by a simple 3D model or sprite within the Three.js scene.
+    * If hit by a bubble, the player loses a life or the game ends.
+
+2.  **Weapon (Harpoon/Projectile):**
+    * Fired vertically upwards from the player's current position.
+    * Only one projectile can be active on screen at a time per player (initially).
+    * The projectile travels upwards until it hits the top boundary of the play area or a bubble.
+    * Represent the projectile as a line, thin cylinder, or similar shape in Three.js.
+
+3.  **Bubbles:**
+    * The primary antagonists. Rendered as spheres using Three.js geometry.
+    * Appear in various sizes (e.g., Large, Medium, Small, Tiny).
+    * Bounce realistically off the side walls and the top boundary of the play area.
+    * Affected by a constant downward acceleration (gravity). Bounce off the "floor" (an invisible boundary just above the player's movement area).
+    * Initial level setup should include one or more large bubbles.
+
+4.  **Bubble Splitting:**
+    * When a projectile hits a bubble (except the smallest size), the bubble is destroyed.
+    * It immediately spawns two new bubbles of the next smaller size from the approximate location of the destroyed bubble. These new bubbles initially move horizontally in opposite directions before gravity takes effect.
+    * Hitting the smallest size bubble with a projectile simply destroys it without spawning new bubbles.
+
+5.  **Game Area & Boundaries:**
+    * Define a fixed rectangular play area.
+    * Bubbles and the projectile interact with the side walls and top boundary. Bubbles also interact with the floor boundary.
+    * The player is restricted to moving within the bottom boundary.
+
+6.  **Win/Loss Conditions:**
+    * **Win:** The level is won when all bubbles are cleared from the screen.
+    * **Loss:** The game is lost if the player character collides with any bubble. (Optionally, implement a life system later).
+
+**Technical Requirements:**
+
+1.  **Engine:** Use Three.js for all rendering (scene, camera, renderer, lights, meshes for player, bubbles, projectile).
+2.  **Library Inclusion:** **Crucially, include the Three.js library via a CDN link** within the `<head>` section of the generated HTML file. Use a recent, stable version.
+3.  **Camera:** Use an OrthographicCamera to achieve a 2D perspective, even though it's rendered in 3D. Position the camera appropriately to view the entire play area.
+4.  **Rendering:** Set up a standard Three.js scene, renderer (attach to an HTML canvas defined in the body), and a simple lighting setup (e.g., AmbientLight, DirectionalLight). Include a game loop (using `requestAnimationFrame`) for updates and rendering within the script.
+5.  **Physics:** Implement basic physics for bubble movement (velocity, acceleration due to gravity, bouncing off boundaries). Simple AABB (Axis-Aligned Bounding Box) or Sphere collision detection is sufficient.
+6.  **Controls:**
+    * **Desktop:** Use keyboard events. Left Arrow (`ArrowLeft`) for moving left, Right Arrow (`ArrowRight`) for moving right, Spacebar (`Space`) for firing the projectile.
+    * **Mobile/Touch:** Implement on-screen touch controls. Style simple, visible button areas using the embedded CSS (e.g., positioned divs for left, right, fire). Use touch events (`touchstart`, `touchend`).
+7.  **Responsiveness:** The game canvas and UI elements (touch controls) must adapt appropriately to different screen sizes and orientations using CSS. Ensure the play area maintains its aspect ratio or scales gracefully.
+8.  **Code Structure (Within Single File):**
+    * Place all CSS rules within `<style>` tags in the `<head>`.
+    * Place *all* JavaScript code, including Three.js setup, game logic, class definitions (e.g., `Game`, `Player`, `Bubble`, `Projectile`, `Controls`), event listeners, and the game loop, within `<script type="module">` tags (or a standard script tag, ensuring proper execution order, often placed before the closing `</body>` tag).
+    * Include comments within the JavaScript code to explain key parts.
+
+**Visual Style:**
+
+* Keep the initial visual style simple and clean.
+* Use basic Three.js materials (e.g., `MeshStandardMaterial` or `MeshBasicMaterial`).
+* Use distinct colors for the player, bubbles of different sizes, and the projectile, defined via JS or CSS variables if appropriate.
+* The background can be a simple color or a subtle gradient defined in CSS.
+
+**Output:**
+
+* Provide a **single, self-contained `.html` file**. This file must include:
+    * The necessary HTML structure (DOCTYPE, html, head, body, including a `<canvas>` element).
+    * All required CSS styles embedded within `<style>` tags in the `<head>`.
+    * All JavaScript code embedded within `<script>` tags (ideally as a module).
+    * A CDN link to the Three.js library within the `<head>`.
+
+**Optional Enhancements (Implement if feasible, but prioritize core mechanics):**
+
+* Scoring system displayed on screen (HTML element updated via JS).
+* Level progression (multiple levels with different bubble layouts, perhaps defined in JS arrays).
+* Timer/Time limit per level displayed on screen.
+* Basic sound effects (would require careful handling within the single file).
+* Power-ups.
+
+Please generate the complete, single-file HTML code focusing on fulfilling the core gameplay mechanics and technical requirements first, ensuring it runs correctly on both desktop and mobile platforms when opened in a browser.
