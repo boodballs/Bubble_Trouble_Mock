@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bubble Trouble 3D</title>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.159.0/build/three.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -15,697 +15,527 @@
         body {
             overflow: hidden;
             font-family: Arial, sans-serif;
-            background: linear-gradient(to bottom, #1a2a6c, #b21f1f, #fdbb2d);
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-        }
-
-        #gameCanvas {
-            display: block;
-            margin: 0 auto;
-            max-width: 100%;
-            max-height: 80vh;
-            touch-action: none;
-        }
-
-        #gameInfo {
+            background-color: #111;
             color: white;
-            text-align: center;
-            padding: 10px;
-            font-size: 24px;
-            margin-bottom: 10px;
         }
 
-        #score {
-            margin-right: 20px;
-        }
-
-        #touchControls {
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
             position: absolute;
-            bottom: 0;
+            top: 0;
             left: 0;
+            z-index: 1;
+        }
+
+        .game-ui {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        .score {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-size: 24px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .lives {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 24px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .game-over, .level-complete {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            font-weight: bold;
+            text-align: center;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            display: none;
+        }
+
+        .restart-button {
+            pointer-events: auto;
+            background-color: #ff5722;
+            border: none;
+            color: white;
+            padding: 15px 30px;
+            font-size: 20px;
+            border-radius: 5px;
+            margin-top: 20px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .restart-button:hover {
+            background-color: #ff7043;
+        }
+
+        .mobile-controls {
+            position: absolute;
+            bottom: 20px;
             width: 100%;
             display: flex;
             justify-content: space-between;
-            padding: 20px;
-            display: none; /* Hidden by default, shown on mobile */
+            padding: 0 20px;
+            pointer-events: none;
         }
 
-        .controlBtn {
+        .mobile-controls button {
+            pointer-events: auto;
+            background-color: rgba(255, 255, 255, 0.3);
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
             width: 80px;
             height: 80px;
-            background-color: rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
+            font-size: 24px;
+            color: white;
             display: flex;
             justify-content: center;
             align-items: center;
             user-select: none;
-            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
 
-        #fireBtn {
-            background-color: rgba(255, 100, 100, 0.5);
-            margin: 0 20px;
-        }
-
-        #startScreen, #gameOverScreen, #levelCompleteScreen {
+        .fire-button {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            pointer-events: auto;
+            background-color: rgba(255, 87, 34, 0.5);
+            border: 2px solid rgba(255, 87, 34, 0.8);
+            border-radius: 50%;
+            width: 100px;
+            height: 100px;
+            font-size: 18px;
+            color: white;
             display: flex;
-            flex-direction: column;
             justify-content: center;
             align-items: center;
-            background-color: rgba(0, 0, 0, 0.7);
-            color: white;
-            text-align: center;
-            z-index: 10;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
         }
 
-        h1 {
-            font-size: 48px;
-            margin-bottom: 20px;
-            color: #fdbb2d;
-        }
-
-        p {
-            font-size: 24px;
-            margin-bottom: 30px;
-        }
-
-        button {
-            background-color: #fdbb2d;
-            color: #1a2a6c;
-            border: none;
-            padding: 15px 30px;
-            font-size: 20px;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        button:hover {
-            background-color: #ff9900;
-            transform: scale(1.05);
-        }
-
-        #gameOverScreen, #levelCompleteScreen {
-            display: none;
-        }
-
-        @media (max-width: 768px) {
-            #touchControls {
-                display: flex;
-            }
-            
-            h1 {
-                font-size: 36px;
-            }
-            
-            p {
-                font-size: 18px;
-                padding: 0 20px;
+        @media (min-width: 768px) {
+            .mobile-controls {
+                display: none;
             }
         }
     </style>
 </head>
 <body>
-    <div id="gameInfo">
-        <span id="score">Score: 0</span>
-        <span id="level">Level: 1</span>
-    </div>
-    <canvas id="gameCanvas"></canvas>
-    
-    <div id="touchControls">
-        <div id="leftBtn" class="controlBtn">←</div>
-        <div id="fireBtn" class="controlBtn">FIRE</div>
-        <div id="rightBtn" class="controlBtn">→</div>
-    </div>
-    
-    <div id="startScreen">
-        <h1>BUBBLE TROUBLE 3D</h1>
-        <p>Use arrow keys to move and space to shoot.<br>
-           On mobile, use the touch buttons at the bottom.<br>
-           Don't let the bubbles hit you!</p>
-        <button id="startBtn">START GAME</button>
-    </div>
-    
-    <div id="gameOverScreen">
-        <h1>GAME OVER</h1>
-        <p>Final Score: <span id="finalScore">0</span></p>
-        <button id="restartBtn">PLAY AGAIN</button>
-    </div>
-    
-    <div id="levelCompleteScreen">
-        <h1>LEVEL COMPLETE!</h1>
-        <p>Score: <span id="levelScore">0</span></p>
-        <button id="nextLevelBtn">NEXT LEVEL</button>
+    <div class="game-ui">
+        <div class="score">Score: 0</div>
+        <div class="lives">Lives: 3</div>
+        <div class="game-over">
+            GAME OVER
+            <br>
+            <button class="restart-button">Restart Game</button>
+        </div>
+        <div class="level-complete">
+            LEVEL COMPLETE!
+            <br>
+            <button class="restart-button">Next Level</button>
+        </div>
+        <div class="mobile-controls">
+            <button id="left-button">←</button>
+            <button id="fire-button" class="fire-button">FIRE</button>
+            <button id="right-button">→</button>
+        </div>
     </div>
 
     <script type="module">
-        // Game Constants
-        const GAME_WIDTH = 800;
-        const GAME_HEIGHT = 600;
-        const PLAYER_SPEED = 300;
-        const PROJECTILE_SPEED = 600;
-        const GRAVITY = 9.8 * 50; // Reduced from 60 to make bubbles bounce higher
-        const BUBBLE_BOUNCE_FACTOR = 0.95; // Increased from 0.9 for more bounce energy
+        // Game constants
+        const GAME_WIDTH = 20;
+        const GAME_HEIGHT = 15;
+        const PLAYER_SPEED = 10;
+        const PROJECTILE_SPEED = 15;
+        const GRAVITY = 9.8;
+        const BUBBLE_BOUNCE_FACTOR = 0.9;
         const BUBBLE_SIZES = {
-            LARGE: { radius: 40, color: 0xff0000, points: 10 },
-            MEDIUM: { radius: 30, color: 0xff7700, points: 20 },
-            SMALL: { radius: 20, color: 0xffff00, points: 30 },
-            TINY: { radius: 10, color: 0x00ff00, points: 50 }
+            LARGE: 1.2,
+            MEDIUM: 0.8,
+            SMALL: 0.5,
+            TINY: 0.3
         };
-        
-        // Game variables
-        let scene, camera, renderer;
-        let lastTime = 0;
-        let gameState = 'start'; // 'start', 'playing', 'gameOver', 'levelComplete'
+        const BUBBLE_SPLIT_VELOCITIES = {
+            HORIZONTAL: 5,
+            VERTICAL: 8
+        };
+
+        // Game state
+        let scene, camera, renderer, player, projectile;
+        let bubbles = [];
+        let keys = {};
+        let gameOver = false;
+        let levelComplete = false;
         let score = 0;
+        let lives = 3;
         let currentLevel = 1;
-        
-        // DOM elements
-        const gameCanvas = document.getElementById('gameCanvas');
-        const scoreElement = document.getElementById('score');
-        const levelElement = document.getElementById('level');
-        const finalScoreElement = document.getElementById('finalScore');
-        const levelScoreElement = document.getElementById('levelScore');
-        const startScreen = document.getElementById('startScreen');
-        const gameOverScreen = document.getElementById('gameOverScreen');
-        const levelCompleteScreen = document.getElementById('levelCompleteScreen');
-        const startBtn = document.getElementById('startBtn');
-        const restartBtn = document.getElementById('restartBtn');
-        const nextLevelBtn = document.getElementById('nextLevelBtn');
-        
-        // Touch controls
-        const leftBtn = document.getElementById('leftBtn');
-        const rightBtn = document.getElementById('rightBtn');
-        const fireBtn = document.getElementById('fireBtn');
-        
+        let isMobile = window.innerWidth < 768;
+        let projectileActive = false;
+        let lastTime = 0;
+
         // Level definitions
         const levels = [
-            { // Level 1
+            // Level 1
+            {
                 bubbles: [
-                    { size: 'LARGE', x: -150, y: 100, velocityX: 100, velocityY: 0 },
-                    { size: 'LARGE', x: 150, y: 100, velocityX: -100, velocityY: 0 }
+                    { size: BUBBLE_SIZES.LARGE, position: { x: -5, y: 5 }, velocity: { x: 3, y: 0 } },
+                    { size: BUBBLE_SIZES.LARGE, position: { x: 5, y: 8 }, velocity: { x: -3, y: 0 } }
                 ]
             },
-            { // Level 2
+            // Level 2
+            {
                 bubbles: [
-                    { size: 'LARGE', x: -200, y: 100, velocityX: 120, velocityY: 0 },
-                    { size: 'LARGE', x: 0, y: 150, velocityX: -120, velocityY: 0 },
-                    { size: 'LARGE', x: 200, y: 100, velocityX: 120, velocityY: 0 }
+                    { size: BUBBLE_SIZES.LARGE, position: { x: -7, y: 5 }, velocity: { x: 3, y: 0 } },
+                    { size: BUBBLE_SIZES.LARGE, position: { x: 7, y: 8 }, velocity: { x: -3, y: 0 } },
+                    { size: BUBBLE_SIZES.MEDIUM, position: { x: 0, y: 10 }, velocity: { x: 4, y: 0 } }
                 ]
             },
-            { // Level 3
+            // Level 3
+            {
                 bubbles: [
-                    { size: 'LARGE', x: -250, y: 100, velocityX: 140, velocityY: 0 },
-                    { size: 'MEDIUM', x: -100, y: 100, velocityX: -140, velocityY: 0 },
-                    { size: 'LARGE', x: 100, y: 150, velocityX: 140, velocityY: 0 },
-                    { size: 'MEDIUM', x: 250, y: 100, velocityX: -140, velocityY: 0 }
+                    { size: BUBBLE_SIZES.LARGE, position: { x: -8, y: 5 }, velocity: { x: 3, y: 0 } },
+                    { size: BUBBLE_SIZES.LARGE, position: { x: 8, y: 8 }, velocity: { x: -3, y: 0 } },
+                    { size: BUBBLE_SIZES.MEDIUM, position: { x: -4, y: 10 }, velocity: { x: 4, y: 0 } },
+                    { size: BUBBLE_SIZES.MEDIUM, position: { x: 4, y: 7 }, velocity: { x: -4, y: 0 } }
                 ]
             }
         ];
-        
-        // Game classes
-        class Game {
-            constructor() {
-                this.player = null;
-                this.projectile = null;
-                this.bubbles = [];
-                this.controls = {
-                    left: false,
-                    right: false,
-                    fire: false
-                };
-                this.projectileActive = false;
-                
-                this.init();
-                this.setupEventListeners();
+
+        // Initialize the game
+        function init() {
+            // Create scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x222233);
+
+            // Create camera (orthographic for 2D-like view)
+            camera = new THREE.OrthographicCamera(
+                -GAME_WIDTH / 2, GAME_WIDTH / 2,
+                GAME_HEIGHT / 2, -GAME_HEIGHT / 2,
+                0.1, 1000
+            );
+            camera.position.z = 10;
+
+            // Create renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
+
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(10, 10, 10);
+            scene.add(directionalLight);
+
+            // Create game boundaries (floor and walls are invisible)
+            createBoundaries();
+
+            // Create player
+            createPlayer();
+
+            // Load level
+            loadLevel(currentLevel);
+
+            // Set up event listeners
+            window.addEventListener('resize', onWindowResize);
+            window.addEventListener('keydown', onKeyDown);
+            window.addEventListener('keyup', onKeyUp);
+
+            // Mobile controls
+            document.getElementById('left-button').addEventListener('touchstart', () => keys.ArrowLeft = true);
+            document.getElementById('left-button').addEventListener('touchend', () => keys.ArrowLeft = false);
+            document.getElementById('right-button').addEventListener('touchstart', () => keys.ArrowRight = true);
+            document.getElementById('right-button').addEventListener('touchend', () => keys.ArrowRight = false);
+            document.getElementById('fire-button').addEventListener('touchstart', () => keys.Space = true);
+            document.getElementById('fire-button').addEventListener('touchend', () => keys.Space = false);
+
+            // Restart buttons
+            document.querySelectorAll('.restart-button').forEach(button => {
+                button.addEventListener('click', restartGame);
+            });
+
+            // Start game loop
+            animate(0);
+        }
+
+        function createBoundaries() {
+            // Visual floor (just a line)
+            const floorGeometry = new THREE.BoxGeometry(GAME_WIDTH, 0.1, 0.1);
+            const floorMaterial = new THREE.MeshBasicMaterial({ color: 0x666666 });
+            const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+            floor.position.y = -GAME_HEIGHT / 2 + 0.5;
+            scene.add(floor);
+
+            // Visual ceiling (just a line)
+            const ceilingGeometry = new THREE.BoxGeometry(GAME_WIDTH, 0.1, 0.1);
+            const ceilingMaterial = new THREE.MeshBasicMaterial({ color: 0x666666 });
+            const ceiling = new THREE.Mesh(ceilingGeometry, ceilingMaterial);
+            ceiling.position.y = GAME_HEIGHT / 2;
+            scene.add(ceiling);
+
+            // Visual left wall (just a line)
+            const leftWallGeometry = new THREE.BoxGeometry(0.1, GAME_HEIGHT, 0.1);
+            const leftWallMaterial = new THREE.MeshBasicMaterial({ color: 0x666666 });
+            const leftWall = new THREE.Mesh(leftWallGeometry, leftWallMaterial);
+            leftWall.position.x = -GAME_WIDTH / 2;
+            scene.add(leftWall);
+
+            // Visual right wall (just a line)
+            const rightWallGeometry = new THREE.BoxGeometry(0.1, GAME_HEIGHT, 0.1);
+            const rightWallMaterial = new THREE.MeshBasicMaterial({ color: 0x666666 });
+            const rightWall = new THREE.Mesh(rightWallGeometry, rightWallMaterial);
+            rightWall.position.x = GAME_WIDTH / 2;
+            scene.add(rightWall);
+        }
+
+        function createPlayer() {
+            // Player geometry
+            const playerGeometry = new THREE.BoxGeometry(1, 1, 1);
+            const playerMaterial = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
+            player = new THREE.Mesh(playerGeometry, playerMaterial);
+            player.position.y = -GAME_HEIGHT / 2 + 1;
+            scene.add(player);
+        }
+
+        function createProjectile() {
+            if (projectileActive || gameOver || levelComplete) return;
+            
+            // Create a thin line for the projectile - starting small
+            const lineGeometry = new THREE.BoxGeometry(0.05, 0.1, 0.05);
+            const lineMaterial = new THREE.MeshStandardMaterial({ color: 0xffff00 });
+            projectile = new THREE.Mesh(lineGeometry, lineMaterial);
+            
+            // Initialize the projectile with a small height
+            projectile.position.x = player.position.x;
+            projectile.position.y = player.position.y + 0.55; // Just above player
+            
+            // Attach additional properties for animation
+            projectile.userData = {
+                startY: player.position.y + 0.55,
+                baseHeight: 0.1,
+                height: 0.1,
+                maxHeight: GAME_HEIGHT,
+                growing: true
+            };
+            
+            scene.add(projectile);
+            projectileActive = true;
+        }
+
+        function createBubble(size, position, velocity) {
+            // Create a spherical bubble with higher segment count for smoother appearance
+            const bubbleGeometry = new THREE.SphereGeometry(size, 32, 32);
+            
+            // Different colors based on size
+            let color;
+            if (size === BUBBLE_SIZES.LARGE) color = 0xff0000;
+            else if (size === BUBBLE_SIZES.MEDIUM) color = 0xff6600;
+            else if (size === BUBBLE_SIZES.SMALL) color = 0xffcc00;
+            else color = 0x00ccff;
+            
+            const bubbleMaterial = new THREE.MeshStandardMaterial({ 
+                color: color,
+                roughness: 0.3,
+                metalness: 0.2
+            });
+            
+            const bubble = new THREE.Mesh(bubbleGeometry, bubbleMaterial);
+            
+            bubble.position.x = position.x;
+            bubble.position.y = position.y;
+            
+            scene.add(bubble);
+            
+            bubbles.push({
+                mesh: bubble,
+                size: size,
+                velocity: velocity
+            });
+        }
+
+        function loadLevel(level) {
+            // Clear existing bubbles
+            bubbles.forEach(bubble => scene.remove(bubble.mesh));
+            bubbles = [];
+            
+            // Reset UI
+            document.querySelector('.score').textContent = `Score: ${score}`;
+            document.querySelector('.lives').textContent = `Lives: ${lives}`;
+            document.querySelector('.game-over').style.display = 'none';
+            document.querySelector('.level-complete').style.display = 'none';
+            
+            // Reset game state
+            gameOver = false;
+            levelComplete = false;
+            projectileActive = false;
+            if (projectile) {
+                scene.remove(projectile);
+                projectile = null;
             }
             
-            init() {
-                // Setup Three.js scene
-                scene = new THREE.Scene();
-                scene.background = new THREE.Color(0x87CEEB); // Sky blue background
-                
-                // Create orthographic camera
-                const aspect = GAME_WIDTH / GAME_HEIGHT;
-                const frustumSize = 600;
-                camera = new THREE.OrthographicCamera(
-                    frustumSize * aspect / -2,
-                    frustumSize * aspect / 2,
-                    frustumSize / 2,
-                    frustumSize / -2,
-                    1,
-                    1000
+            // Reset player position
+            player.position.x = 0;
+            
+            // Create bubbles for this level
+            const levelConfig = levels[level - 1];
+            levelConfig.bubbles.forEach(bubbleConfig => {
+                createBubble(
+                    bubbleConfig.size,
+                    bubbleConfig.position,
+                    bubbleConfig.velocity
                 );
-                camera.position.z = 500;
-                
-                // Setup renderer
-                renderer = new THREE.WebGLRenderer({ canvas: gameCanvas, antialias: true });
-                renderer.setSize(GAME_WIDTH, GAME_HEIGHT);
-                
-                // Add lights
-                const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-                scene.add(ambientLight);
-                
-                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-                directionalLight.position.set(0, 10, 10);
-                scene.add(directionalLight);
-                
-                // Create floor (invisible boundary)
-                const floorGeometry = new THREE.PlaneGeometry(GAME_WIDTH, 10);
-                const floorMaterial = new THREE.MeshBasicMaterial({ 
-                    color: 0x333333,
-                    transparent: true,
-                    opacity: 0.3
-                });
-                this.floor = new THREE.Mesh(floorGeometry, floorMaterial);
-                this.floor.position.y = -GAME_HEIGHT / 2 + 10;
-                scene.add(this.floor);
-                
-                // Create player
-                this.player = new Player();
-                
-                // Resize handler
-                window.addEventListener('resize', () => this.handleResize());
-                this.handleResize();
-            }
+            });
+        }
+
+        function onWindowResize() {
+            isMobile = window.innerWidth < 768;
             
-            loadLevel(levelNumber) {
-                // Clear existing bubbles
-                for (const bubble of this.bubbles) {
-                    scene.remove(bubble.mesh);
-                }
-                this.bubbles = [];
-                
-                // Check if level exists
-                if (levelNumber > levels.length) {
-                    // Player beat all levels
-                    alert("Congratulations! You've completed all levels!");
-                    this.restart(1); // Start over at level 1
-                    return;
-                }
-                
-                const level = levels[levelNumber - 1];
-                
-                // Create bubbles for this level
-                for (const bubbleData of level.bubbles) {
-                    const bubble = new Bubble(
-                        bubbleData.size,
-                        bubbleData.x,
-                        bubbleData.y,
-                        bubbleData.velocityX,
-                        bubbleData.velocityY
-                    );
-                    this.bubbles.push(bubble);
-                }
-                
-                // Update level display
-                levelElement.textContent = `Level: ${levelNumber}`;
-                currentLevel = levelNumber;
-            }
+            // Update camera aspect ratio
+            camera.left = -GAME_WIDTH / 2;
+            camera.right = GAME_WIDTH / 2;
+            camera.top = GAME_HEIGHT / 2;
+            camera.bottom = -GAME_HEIGHT / 2;
+            camera.updateProjectionMatrix();
             
-            setupEventListeners() {
-                // Keyboard controls
-                window.addEventListener('keydown', (event) => {
-                    switch (event.code) {
-                        case 'ArrowLeft':
-                            this.controls.left = true;
-                            break;
-                        case 'ArrowRight':
-                            this.controls.right = true;
-                            break;
-                        case 'Space':
-                            this.controls.fire = true;
-                            break;
-                    }
-                });
-                
-                window.addEventListener('keyup', (event) => {
-                    switch (event.code) {
-                        case 'ArrowLeft':
-                            this.controls.left = false;
-                            break;
-                        case 'ArrowRight':
-                            this.controls.right = false;
-                            break;
-                        case 'Space':
-                            this.controls.fire = false;
-                            break;
-                    }
-                });
-                
-                // Touch controls
-                leftBtn.addEventListener('touchstart', () => {
-                    this.controls.left = true;
-                }, { passive: true });
-                
-                leftBtn.addEventListener('touchend', () => {
-                    this.controls.left = false;
-                }, { passive: true });
-                
-                rightBtn.addEventListener('touchstart', () => {
-                    this.controls.right = true;
-                }, { passive: true });
-                
-                rightBtn.addEventListener('touchend', () => {
-                    this.controls.right = false;
-                }, { passive: true });
-                
-                fireBtn.addEventListener('touchstart', () => {
-                    this.controls.fire = true;
-                }, { passive: true });
-                
-                fireBtn.addEventListener('touchend', () => {
-                    this.controls.fire = false;
-                }, { passive: true });
-                
-                // UI Button controls
-                startBtn.addEventListener('click', () => {
-                    this.start();
-                });
-                
-                restartBtn.addEventListener('click', () => {
-                    this.restart(1);
-                });
-                
-                nextLevelBtn.addEventListener('click', () => {
-                    this.nextLevel();
-                });
-            }
+            // Update renderer
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function onKeyDown(event) {
+            keys[event.code] = true;
             
-            start() {
-                gameState = 'playing';
-                startScreen.style.display = 'none';
-                score = 0;
-                scoreElement.textContent = `Score: ${score}`;
-                this.loadLevel(1);
-            }
-            
-            restart(level) {
-                gameState = 'playing';
-                gameOverScreen.style.display = 'none';
-                levelCompleteScreen.style.display = 'none';
-                score = 0;
-                scoreElement.textContent = `Score: ${score}`;
-                this.loadLevel(level);
-            }
-            
-            nextLevel() {
-                gameState = 'playing';
-                levelCompleteScreen.style.display = 'none';
-                this.loadLevel(currentLevel + 1);
-            }
-            
-            gameOver() {
-                gameState = 'gameOver';
-                finalScoreElement.textContent = score;
-                gameOverScreen.style.display = 'flex';
-            }
-            
-            levelComplete() {
-                gameState = 'levelComplete';
-                levelScoreElement.textContent = score;
-                levelCompleteScreen.style.display = 'flex';
-            }
-            
-            update(deltaTime) {
-                if (gameState !== 'playing') return;
-                
-                // Update player
-                this.player.update(deltaTime, this.controls);
-                
-                // Update projectile if active
-                if (this.projectileActive && this.projectile) {
-                    this.projectile.update(deltaTime);
-                    
-                    // Check if projectile hit top boundary
-                    if (this.projectile.mesh.position.y > GAME_HEIGHT / 2) {
-                        this.removeProjectile();
-                    }
-                }
-                
-                // Fire projectile if requested and none active
-                if (this.controls.fire && !this.projectileActive) {
-                    this.fireProjectile();
-                    this.controls.fire = false; // Reset fire control
-                }
-                
-                // Update bubbles
-                for (let i = this.bubbles.length - 1; i >= 0; i--) {
-                    const bubble = this.bubbles[i];
-                    bubble.update(deltaTime);
-                    
-                    // Check for collision with player
-                    if (this.detectCollision(this.player.mesh, bubble.mesh, this.player.width / 2, bubble.radius)) {
-                        this.gameOver();
-                        return;
-                    }
-                    
-                    // Check for collision with projectile
-                    if (this.projectileActive && this.detectCollision(this.projectile.mesh, bubble.mesh, 3, bubble.radius)) {
-                        // Remove the projectile
-                        this.removeProjectile();
-                        
-                        // Split the bubble
-                        this.splitBubble(bubble, i);
-                        
-                        // Add score
-                        const points = BUBBLE_SIZES[bubble.size].points;
-                        score += points;
-                        scoreElement.textContent = `Score: ${score}`;
-                        
-                        break; // Exit loop since we modified the bubbles array
-                    }
-                }
-                
-                // Check if all bubbles are cleared
-                if (this.bubbles.length === 0) {
-                    this.levelComplete();
-                }
-            }
-            
-            fireProjectile() {
-                const playerPos = this.player.mesh.position;
-                this.projectile = new Projectile(playerPos.x, playerPos.y);
-                this.projectileActive = true;
-            }
-            
-            removeProjectile() {
-                if (this.projectile) {
-                    scene.remove(this.projectile.mesh);
-                    this.projectile = null;
-                    this.projectileActive = false;
-                }
-            }
-            
-            splitBubble(bubble, index) {
-                // Remove the hit bubble
-                scene.remove(bubble.mesh);
-                this.bubbles.splice(index, 1);
-                
-                // Determine next bubble size
-                let nextSize;
-                if (bubble.size === 'LARGE') {
-                    nextSize = 'MEDIUM';
-                } else if (bubble.size === 'MEDIUM') {
-                    nextSize = 'SMALL';
-                } else if (bubble.size === 'SMALL') {
-                    nextSize = 'TINY';
-                } else {
-                    // If it's already the smallest size, don't split
-                    return;
-                }
-                
-                if (nextSize) {
-                    // Create two smaller bubbles
-                    const velocityY = -250; // Initial upward velocity (increased from -200)
-                    
-                    const leftBubble = new Bubble(
-                        nextSize,
-                        bubble.mesh.position.x,
-                        bubble.mesh.position.y,
-                        -bubble.velocityX,
-                        velocityY
-                    );
-                    
-                    const rightBubble = new Bubble(
-                        nextSize,
-                        bubble.mesh.position.x,
-                        bubble.mesh.position.y,
-                        bubble.velocityX,
-                        velocityY
-                    );
-                    
-                    this.bubbles.push(leftBubble, rightBubble);
-                }
-            }
-            
-            detectCollision(meshA, meshB, radiusA, radiusB) {
-                const dx = meshA.position.x - meshB.position.x;
-                const dy = meshA.position.y - meshB.position.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-                
-                return distance < radiusA + radiusB;
-            }
-            
-            handleResize() {
-                const width = window.innerWidth;
-                const height = window.innerHeight;
-                
-                let newWidth, newHeight;
-                
-                if (width / height > GAME_WIDTH / GAME_HEIGHT) {
-                    // Window is wider than game aspect ratio
-                    newHeight = Math.min(height, GAME_HEIGHT);
-                    newWidth = newHeight * (GAME_WIDTH / GAME_HEIGHT);
-                } else {
-                    // Window is taller than game aspect ratio
-                    newWidth = Math.min(width, GAME_WIDTH);
-                    newHeight = newWidth * (GAME_HEIGHT / GAME_WIDTH);
-                }
-                
-                renderer.setSize(newWidth, newHeight);
+            // Fire projectile on spacebar
+            if (event.code === 'Space' && !projectileActive && !gameOver && !levelComplete) {
+                createProjectile();
             }
         }
-        
-        class Player {
-            constructor() {
-                // Reduced player size (30x45 instead of 40x60)
-                this.width = 30;
-                this.height = 45;
-                const geometry = new THREE.BoxGeometry(this.width, this.height, 20);
-                const material = new THREE.MeshStandardMaterial({ color: 0x4444ff });
-                this.mesh = new THREE.Mesh(geometry, material);
-                this.mesh.position.y = -GAME_HEIGHT / 2 + this.height / 2 + 10;
-                scene.add(this.mesh);
-            }
-            
-            update(deltaTime, controls) {
-                if (controls.left) {
-                    this.mesh.position.x -= PLAYER_SPEED * deltaTime;
-                }
-                
-                if (controls.right) {
-                    this.mesh.position.x += PLAYER_SPEED * deltaTime;
-                }
-                
-                // Keep player within bounds
-                const halfWidth = this.width / 2;
-                const boundary = GAME_WIDTH / 2 - halfWidth;
-                
-                if (this.mesh.position.x < -boundary) {
-                    this.mesh.position.x = -boundary;
-                } else if (this.mesh.position.x > boundary) {
-                    this.mesh.position.x = boundary;
-                }
-            }
+
+        function onKeyUp(event) {
+            keys[event.code] = false;
         }
-        
-        class Projectile {
-            constructor(x, y) {
-                // Made harpoon wider (4 instead of 2) and longer (80 instead of 60)
-                const geometry = new THREE.CylinderGeometry(4, 4, 80, 8);
-                geometry.rotateX(Math.PI / 2); // Rotate to make it vertical
-                const material = new THREE.MeshStandardMaterial({ 
-                    color: 0xffff00,
-                    emissive: 0xffff00,
-                    emissiveIntensity: 0.5 // Added glow effect
-                });
-                this.mesh = new THREE.Mesh(geometry, material);
-                this.mesh.position.set(x, y, 0);
-                scene.add(this.mesh);
+
+        function updatePlayer(deltaTime) {
+            // Movement controls
+            if (keys.ArrowLeft) {
+                player.position.x -= PLAYER_SPEED * deltaTime;
+            }
+            if (keys.ArrowRight) {
+                player.position.x += PLAYER_SPEED * deltaTime;
             }
             
-            update(deltaTime) {
-                this.mesh.position.y += PROJECTILE_SPEED * deltaTime;
+            // Fire projectile
+            if (keys.Space && !projectileActive && !gameOver && !levelComplete) {
+                createProjectile();
+                keys.Space = false; // Reset to prevent continuous firing
             }
+            
+            // Clamp player to boundaries
+            const halfPlayerWidth = 0.5;
+            player.position.x = Math.max(
+                -GAME_WIDTH / 2 + halfPlayerWidth,
+                Math.min(GAME_WIDTH / 2 - halfPlayerWidth, player.position.x)
+            );
         }
-        
-        class Bubble {
-            constructor(size, x, y, velocityX, velocityY) {
-                this.size = size;
-                this.velocityX = velocityX;
-                this.velocityY = velocityY;
+
+        function updateProjectile(deltaTime) {
+            if (!projectileActive || !projectile) return;
+            
+            // Grow the projectile upward
+            if (projectile.userData.growing) {
+                // Calculate how much to grow this frame (simulate a continuous upward motion)
+                const growSpeed = 15 * deltaTime; // Adjust this for slower/faster projectile
+                projectile.userData.height += growSpeed;
                 
-                // Get bubble properties based on size
-                const bubbleProps = BUBBLE_SIZES[size];
-                this.radius = bubbleProps.radius;
+                // Check if it's hit the ceiling
+                if (projectile.userData.height >= projectile.userData.maxHeight) {
+                    projectile.userData.height = projectile.userData.maxHeight;
+                    projectile.userData.growing = false;
+                    
+                    // Remove projectile after a short delay
+                    setTimeout(() => {
+                        if (projectile && projectileActive) {
+                            scene.remove(projectile);
+                            projectile = null;
+                            projectileActive = false;
+                        }
+                    }, 100);
+                }
                 
-                // Create mesh
-                const geometry = new THREE.SphereGeometry(this.radius, 32, 16);
-                const material = new THREE.MeshStandardMaterial({ 
-                    color: bubbleProps.color,
-                    metalness: 0.3,
-                    roughness: 0.4
-                });
-                this.mesh = new THREE.Mesh(geometry, material);
-                this.mesh.position.set(x, y, 0);
-                scene.add(this.mesh);
+                // Update geometry to reflect new height
+                projectile.scale.y = projectile.userData.height / projectile.userData.baseHeight;
+                
+                // Update position to keep bottom anchored
+                projectile.position.y = projectile.userData.startY + (projectile.userData.height / 2);
             }
             
-            update(deltaTime) {
+            // Check for collisions
+            checkProjectileCollisions();
+        }
+
+        function updateBubbles(deltaTime) {
+            for (let i = 0; i < bubbles.length; i++) {
+                const bubble = bubbles[i];
+                
                 // Apply gravity
-                this.velocityY -= GRAVITY * deltaTime;
+                bubble.velocity.y -= GRAVITY * deltaTime;
                 
                 // Update position
-                this.mesh.position.x += this.velocityX * deltaTime;
-                this.mesh.position.y += this.velocityY * deltaTime;
+                bubble.mesh.position.x += bubble.velocity.x * deltaTime;
+                bubble.mesh.position.y += bubble.velocity.y * deltaTime;
                 
-                // Check bounds - horizontal
-                const boundaryX = GAME_WIDTH / 2 - this.radius;
-                if (this.mesh.position.x < -boundaryX) {
-                    this.mesh.position.x = -boundaryX;
-                    this.velocityX = -this.velocityX;
-                } else if (this.mesh.position.x > boundaryX) {
-                    this.mesh.position.x = boundaryX;
-                    this.velocityX = -this.velocityX;
+                // Bounce off walls
+                const radius = bubble.size;
+                if (bubble.mesh.position.x - radius < -GAME_WIDTH / 2) {
+                    bubble.mesh.position.x = -GAME_WIDTH / 2 + radius;
+                    bubble.velocity.x = Math.abs(bubble.velocity.x) * BUBBLE_BOUNCE_FACTOR;
+                } else if (bubble.mesh.position.x + radius > GAME_WIDTH / 2) {
+                    bubble.mesh.position.x = GAME_WIDTH / 2 - radius;
+                    bubble.velocity.x = -Math.abs(bubble.velocity.x) * BUBBLE_BOUNCE_FACTOR;
                 }
                 
-                // Check bounds - vertical
-                const ceilingY = GAME_HEIGHT / 2 - this.radius;
-                const floorY = -GAME_HEIGHT / 2 + this.radius + 20; // 20 is the floor offset
+                // Bounce off floor and ceiling
+                if (bubble.mesh.position.y - radius < -GAME_HEIGHT / 2 + 0.5) {
+                    bubble.mesh.position.y = -GAME_HEIGHT / 2 + 0.5 + radius;
+                    bubble.velocity.y = Math.abs(bubble.velocity.y) * BUBBLE_BOUNCE_FACTOR;
+                } else if (bubble.mesh.position.y + radius > GAME_HEIGHT / 2) {
+                    bubble.mesh.position.y = GAME_HEIGHT / 2 - radius;
+                    bubble.velocity.y = -Math.abs(bubble.velocity.y) * BUBBLE_BOUNCE_FACTOR;
+                }
                 
-                if (this.mesh.position.y < floorY) {
-                    this.mesh.position.y = floorY;
-                    this.velocityY = -this.velocityY * BUBBLE_BOUNCE_FACTOR;
-                } else if (this.mesh.position.y > ceilingY) {
-                    this.mesh.position.y = ceilingY;
-                    this.velocityY = -this.velocityY * BUBBLE_BOUNCE_FACTOR;
+                // Check collision with player
+                if (checkPlayerBubbleCollision(bubble)) {
+                    handlePlayerHit();
+                    break; // Exit loop as game state has changed
                 }
             }
         }
-        
-        // Initialize game
-        const game = new Game();
-        
-        // Game loop
-        function gameLoop(currentTime) {
-            requestAnimationFrame(gameLoop);
+
+        function checkProjectileCollisions() {
+            if (!projectileActive || !projectile) return;
             
-            // Calculate time delta
-            const deltaTime = (currentTime - lastTime) / 1000; // Convert to seconds
-            lastTime = currentTime;
+            const projectileX = projectile.position.x;
+            const projectileTop = projectile.position.y + (projectile.userData.height / 2);
+            const projectileBottom = projectile.position.y - (projectile.userData.height / 2);
             
-            // Limit delta time to prevent huge jumps
-            const limitedDelta = Math.min(deltaTime, 0.1);
-            
-            // Update game state
-            game.update(limitedDelta);
-            
-            // Render scene
-            renderer.render(scene, camera);
-        }
-        
-        // Start the game loop
-        requestAnimationFrame(gameLoop);
-    </script>
-</body>
-</html>
+            for (let i = 0; i < bubbles.length; i++) {
+                const bubble = bubbles[i];
+                const bubbleX = bubble.mesh.position.x;
+                const bubb
